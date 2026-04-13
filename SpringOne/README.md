@@ -34,7 +34,7 @@ Open your terminal in the `SpringOne` directory and run:
 ### 4. Verification
 Once the terminal shows `Started ProjectFlowApplication in X seconds`, the server is alive!
 - **Base URL**: `http://localhost:8080`
-- **Swagger Documentation**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **Swagger Documentation**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **H2 Console**: [http://localhost:8080/h2-console](http://localhost:8080/h2-console) (JDBC URL: `jdbc:h2:mem:projectflow`, User: `sa`, No Password)
 
 ---

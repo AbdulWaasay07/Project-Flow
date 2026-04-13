@@ -1,11 +1,13 @@
 package com.example.projectflow.controller;
 
 import com.example.projectflow.dto.ApiResponse;
+import com.example.projectflow.dto.user.AdminUserUpdateRequest;
 import com.example.projectflow.dto.user.UserProfileResponse;
 import com.example.projectflow.dto.user.UserResponse;
 import com.example.projectflow.dto.user.UserUpdateRequest;
 import com.example.projectflow.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +23,14 @@ import java.util.List;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Tag(name = "User Management", description = "Endpoints for managing users")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all users (Admin only)")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @Operation(summary = "Get all users (Admin and Manager)")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", userService.getAllUsers()));
     }
@@ -37,6 +40,15 @@ public class UserController {
     @Operation(summary = "Get a specific user by ID")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable @NonNull Long id) {
         return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", userService.getUserById(id)));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user details (Admin only)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable @NonNull Long id,
+            @Valid @RequestBody AdminUserUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("User updated successfully", userService.updateUserByAdmin(id, request)));
     }
 
     @GetMapping("/profile")

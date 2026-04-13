@@ -8,5 +8,6 @@ import java.util.List;
 public interface DashboardService {
     DashboardSummaryResponse getAdminDashboard();
     DashboardSummaryResponse getUserDashboard(String email);
+    DashboardSummaryResponse getUserStatsById(Long userId);
     List<ProjectProgressResponse> getRecentProjectsProgress(String email, int limit);
 }

@@ -4,6 +4,7 @@ import com.example.projectflow.dto.ApiResponse;
 import com.example.projectflow.dto.notification.NotificationResponse;
 import com.example.projectflow.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import java.util.List;
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 @Tag(name = "Notifications", description = "Endpoints for managing user notifications")
+@SecurityRequirement(name = "bearerAuth")
 public class NotificationController {
 
     private final NotificationService notificationService;

@@ -4,6 +4,7 @@ import com.example.projectflow.dto.ApiResponse;
 import com.example.projectflow.dto.task.*;
 import com.example.projectflow.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 @Tag(name = "Task Management", description = "Endpoints for managing tasks")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskController {
 
     private final TaskService taskService;

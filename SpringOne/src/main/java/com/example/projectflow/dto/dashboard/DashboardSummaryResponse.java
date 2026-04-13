@@ -14,6 +14,7 @@ import java.util.List;
 public class DashboardSummaryResponse {
     private long totalProjects;
     private long activeProjects;
+    private long totalMembers;
     private long totalTasks;
     private long completedTasks;
     private long overdueTasks;

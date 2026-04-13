@@ -5,6 +5,7 @@ import com.example.projectflow.dto.comment.TaskCommentCreateRequest;
 import com.example.projectflow.dto.comment.TaskCommentResponse;
 import com.example.projectflow.service.TaskCommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequestMapping("/api/tasks/{taskId}/comments")
 @RequiredArgsConstructor
 @Tag(name = "Task Comments", description = "Endpoints for managing task comments")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskCommentController {
 
     private final TaskCommentService taskCommentService;

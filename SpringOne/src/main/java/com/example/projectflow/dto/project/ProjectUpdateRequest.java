@@ -17,4 +17,5 @@ public class ProjectUpdateRequest {
     private String status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+    private Long managerId;  // Optional: reassign the MANAGER role to this user
 }

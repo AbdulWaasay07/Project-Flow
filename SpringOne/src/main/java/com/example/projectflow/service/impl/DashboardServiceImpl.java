@@ -31,6 +31,7 @@ public class DashboardServiceImpl implements DashboardService {
     public DashboardSummaryResponse getAdminDashboard() {
         long totalProjects = projectRepository.count();
         long activeProjects = projectRepository.countByStatus(AppConstants.PROJECT_STATUS_ONGOING);
+        long totalMembers = userRepository.count();
         long totalTasks = taskRepository.count();
         long completedTasks = taskRepository.countByStatus(AppConstants.TASK_STATUS_DONE);
         long overdueTasks = taskRepository.countOverdueTasks(LocalDateTime.now(), AppConstants.TASK_STATUS_DONE);
@@ -40,6 +41,7 @@ public class DashboardServiceImpl implements DashboardService {
         return DashboardSummaryResponse.builder()
                 .totalProjects(totalProjects)
                 .activeProjects(activeProjects)
+                .totalMembers(totalMembers)
                 .totalTasks(totalTasks)
                 .completedTasks(completedTasks)
                 .overdueTasks(overdueTasks)
@@ -57,6 +59,53 @@ public class DashboardServiceImpl implements DashboardService {
                 .stream().map(pm -> pm.getProject().getId()).collect(Collectors.toList());
 
         long totalProjects = projectIds.size();
+        long activeProjects = projectIds.stream()
+                .filter(pid -> projectRepository.findById(pid)
+                        .map(p -> AppConstants.PROJECT_STATUS_ONGOING.equals(p.getStatus()))
+                        .orElse(false))
+                .count();
+        long totalTasks = 0;
+        long completedTasks = 0;
+        long overdueTasks = 0;
+        LocalDateTime now = LocalDateTime.now();
+
+        // Count overdue = tasks past due date that are NOT done (any non-DONE status)
+        for (Long pid : projectIds) {
+            totalTasks += taskRepository.countByProjectId(pid);
+            completedTasks += taskRepository.countByProjectIdAndStatus(pid, AppConstants.TASK_STATUS_DONE);
+            overdueTasks += taskRepository.findByProjectId(pid).stream()
+                    .filter(t -> !AppConstants.TASK_STATUS_DONE.equals(t.getStatus())
+                            && t.getDueDate() != null
+                            && t.getDueDate().isBefore(now))
+                    .count();
+        }
+
+        double completionRate = totalTasks > 0 ? (double) completedTasks * 100 / totalTasks : 0;
+
+        return DashboardSummaryResponse.builder()
+                .totalProjects(totalProjects)
+                .activeProjects(activeProjects)
+                .totalTasks(totalTasks)
+                .completedTasks(completedTasks)
+                .overdueTasks(overdueTasks)
+                .overallCompletionPercentage(completionRate)
+                .build();
+    }
+
+    @Override
+    public DashboardSummaryResponse getUserStatsById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+
+        List<Long> projectIds = projectMemberRepository.findByUserId(user.getId())
+                .stream().map(pm -> pm.getProject().getId()).collect(Collectors.toList());
+
+        long totalProjects = projectIds.size();
+        long activeProjects = projectIds.stream()
+                .filter(pid -> projectRepository.findById(pid)
+                        .map(p -> AppConstants.PROJECT_STATUS_ONGOING.equals(p.getStatus()))
+                        .orElse(false))
+                .count();
         long totalTasks = 0;
         long completedTasks = 0;
         long overdueTasks = 0;
@@ -65,8 +114,10 @@ public class DashboardServiceImpl implements DashboardService {
         for (Long pid : projectIds) {
             totalTasks += taskRepository.countByProjectId(pid);
             completedTasks += taskRepository.countByProjectIdAndStatus(pid, AppConstants.TASK_STATUS_DONE);
-            overdueTasks += taskRepository.findByProjectIdAndStatus(pid, AppConstants.TASK_STATUS_TODO).stream()
-                    .filter(t -> t.getDueDate() != null && t.getDueDate().isBefore(now))
+            overdueTasks += taskRepository.findByProjectId(pid).stream()
+                    .filter(t -> !AppConstants.TASK_STATUS_DONE.equals(t.getStatus())
+                            && t.getDueDate() != null
+                            && t.getDueDate().isBefore(now))
                     .count();
         }
 
@@ -74,6 +125,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         return DashboardSummaryResponse.builder()
                 .totalProjects(totalProjects)
+                .activeProjects(activeProjects)
                 .totalTasks(totalTasks)
                 .completedTasks(completedTasks)
                 .overdueTasks(overdueTasks)
@@ -86,17 +138,37 @@ public class DashboardServiceImpl implements DashboardService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
 
-        return projectMemberRepository.findByUserId(user.getId()).stream()
+        boolean isAdmin = AppConstants.ROLE_ADMIN.equals(user.getRole().getName());
+
+        List<Project> projects;
+        if (isAdmin) {
+            projects = projectRepository.findAll();
+        } else {
+            projects = projectMemberRepository.findByUserId(user.getId()).stream()
+                    .map(pm -> pm.getProject())
+                    .collect(Collectors.toList());
+        }
+
+        return projects.stream()
                 .limit(limit)
-                .map(pm -> {
-                    Project p = pm.getProject();
+                .map(p -> {
                     long total = taskRepository.countByProjectId(p.getId());
                     long completed = taskRepository.countByProjectIdAndStatus(p.getId(), AppConstants.TASK_STATUS_DONE);
                     double pct = total > 0 ? (double) completed * 100 / total : 0;
-                    
+
+                    // Manager: first project member with MANAGER role
+                    List<com.example.projectflow.entity.ProjectMember> managers =
+                            projectMemberRepository.findByProjectIdAndRole(p.getId(), AppConstants.PROJECT_ROLE_MANAGER);
+                    String managerName = managers.isEmpty() ? "—" : managers.get(0).getUser().getFullName();
+
+                    // Derived status: COMPLETED when all tasks done (and there are tasks), else actual status
+                    String derivedStatus = (total > 0 && completed == total) ? "COMPLETED" : p.getStatus();
+
                     return ProjectProgressResponse.builder()
                             .projectId(p.getId())
                             .projectName(p.getName())
+                            .managerName(managerName)
+                            .projectStatus(derivedStatus)
                             .totalTasks(total)
                             .completedTasks(completed)
                             .completionPercentage(pct)
@@ -107,6 +179,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<WorkloadResponse> getTeamWorkload() {
         return userRepository.findAll().stream()
+                .filter(user -> !AppConstants.ROLE_ADMIN.equals(user.getRole().getName()))
                 .map(user -> {
                     long count = taskAssigneeRepository.findByUserId(user.getId()).size();
                     return WorkloadResponse.builder()

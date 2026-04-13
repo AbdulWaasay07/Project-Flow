@@ -1,5 +1,6 @@
 package com.example.projectflow.service.impl;
 
+import com.example.projectflow.dto.user.AdminUserUpdateRequest;
 import com.example.projectflow.dto.user.UserProfileResponse;
 import com.example.projectflow.dto.user.UserResponse;
 import com.example.projectflow.dto.user.UserUpdateRequest;
@@ -40,6 +41,28 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
         return mapToUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUserByAdmin(@NonNull Long id, AdminUserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
+
+        String updatedEmail = request.getEmail().trim();
+        if (userRepository.existsByEmailAndIdNot(updatedEmail, id)) {
+            throw new CustomException("Email already in use", HttpStatus.BAD_REQUEST);
+        }
+
+        user.setFullName(request.getFullName().trim());
+        user.setEmail(updatedEmail);
+
+        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        }
+
+        User updatedUser = userRepository.save(user);
+        return mapToUserResponse(updatedUser);
     }
 
     @Override
