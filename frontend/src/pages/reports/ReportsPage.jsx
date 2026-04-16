@@ -649,7 +649,7 @@ export default function ReportsPage() {
                       <Cell key={entry.status} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Legend {...LEGEND_STYLE} />
                 </RePie>
               </ResponsiveContainer>
@@ -682,7 +682,7 @@ export default function ReportsPage() {
                       <Cell key={entry.status} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Legend {...LEGEND_STYLE} />
                 </RePie>
               </ResponsiveContainer>
@@ -717,7 +717,7 @@ export default function ReportsPage() {
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Legend {...LEGEND_STYLE} />
                 </RePie>
               </ResponsiveContainer>
@@ -750,7 +750,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: C.textMuted }} />
                   <YAxis dataKey="name" type="category" width={72} tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Bar dataKey="value" name="Tasks" radius={[0, 7, 7, 0]} maxBarSize={24}>
                     {taskPriorityDist.map((entry) => (
                       <Cell key={entry.priority} fill={entry.color} />
@@ -781,7 +781,7 @@ export default function ReportsPage() {
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: C.textMuted }} angle={-28} textAnchor="end" interval={0} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: C.textMuted }} unit="%" />
                   <ReferenceLine y={80} stroke={C.success} strokeDasharray="4 4" />
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Bar dataKey="pct" name="Completion %" radius={[7, 7, 0, 0]} maxBarSize={44}>
                     {projectCompletionChartData.map((project) => (
                       <Cell
@@ -816,7 +816,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: C.textMuted }} angle={-25} textAnchor="end" interval={0} />
                   <YAxis tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Bar dataKey="tasks" name="Assigned Tasks" radius={[7, 7, 0, 0]} fill={C.primary} maxBarSize={38} />
                 </BarChart>
               </ResponsiveContainer>
@@ -841,7 +841,7 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
                   <XAxis dataKey="week" tick={{ fontSize: 11, fill: C.textMuted }} />
                   <YAxis tick={{ fontSize: 11, fill: C.textMuted }} />
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={<ChartTooltip />} isAnimationActive={false} wrapperStyle={{ transition: 'none' }} />
                   <Legend {...LEGEND_STYLE} />
                   <Line
                     type="monotone"
