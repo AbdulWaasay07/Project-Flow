@@ -432,16 +432,14 @@ export default function ProjectDetailPage() {
                           <StatusBadge status={task.priority} />
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                             <span style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', userSelect: 'none' }}>⠿</span>
-                            {canManage && (
-                              <button
-                                className="icon-btn"
-                                style={{ color: 'var(--color-danger)', padding: '2px', opacity: 0.7 }}
-                                title="Delete task"
-                                onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
+                          <button
+                              className="icon-btn"
+                              style={{ color: 'var(--color-danger)', padding: '2px', opacity: 0.7 }}
+                              title="Delete task"
+                              onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
                           </div>
                         </div>
 
@@ -573,7 +571,10 @@ export default function ProjectDetailPage() {
             <div className="form-group">
               <label className="form-label"><Users size={14} style={{ marginRight: '0.4rem' }} />Assign To ({taskForm.assigneeIds.length} selected)</label>
               <div className="member-picker">
-                {projectMembers.filter((m) => user.role === 'ADMIN' || m.userId !== user.id).map((m) => {
+                {projectMembers
+                  .filter((m) => user.role === 'ADMIN' || m.userId !== user.id)
+                  .filter((m) => user.role !== 'MANAGER' || m.projectRole !== 'ADMIN') /* managers cannot assign admins */
+                  .map((m) => {
                   const selected = taskForm.assigneeIds.includes(m.userId);
                   return (
                     <div key={m.userId} className={`member-picker-item ${selected ? 'selected' : ''}`} onClick={() => toggleAssignee(m.userId)}>
@@ -593,16 +594,31 @@ export default function ProjectDetailPage() {
           {/* File upload */}
           <div className="form-group">
             <label className="form-label"><Paperclip size={14} style={{ marginRight: '0.4rem' }} />Attach Files (optional)</label>
-            <div
-              style={{ border: '2px dashed var(--color-neutral)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center', cursor: 'pointer' }}
-              onClick={() => createFileRef.current?.click()}
+            <input
+              id="detail-create-task-file-input"
+              ref={createFileRef}
+              type="file"
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const selected = Array.from(e.target.files || []);
+                if (selected.length > 0) setPendingFiles((p) => [...p, ...selected]);
+                e.target.value = '';
+              }}
+            />
+            <label
+              htmlFor="detail-create-task-file-input"
+              style={{ display: 'block', border: '2px dashed var(--color-neutral)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center', cursor: 'pointer' }}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); setPendingFiles((p) => [...p, ...Array.from(e.dataTransfer.files || [])]); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const dropped = Array.from(e.dataTransfer.files || []);
+                if (dropped.length > 0) setPendingFiles((p) => [...p, ...dropped]);
+              }}
             >
-              <input ref={createFileRef} type="file" multiple hidden onChange={(e) => { setPendingFiles((p) => [...p, ...Array.from(e.target.files || [])]); e.target.value = ''; }} />
-              <Upload size={20} style={{ color: '#6366f1', margin: '0 auto 0.35rem' }} />
-              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Click or drag & drop</p>
-            </div>
+              <Upload size={20} style={{ color: '#6366f1', margin: '0 auto 0.35rem', display: 'block' }} />
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', margin: 0 }}>Click or drag &amp; drop</p>
+            </label>
             {pendingFiles.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.65rem' }}>
                 {pendingFiles.map((f, i) => (
@@ -610,7 +626,7 @@ export default function ProjectDetailPage() {
                     <FileIcon mime={f.type} />
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                     <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.7rem' }}>{(f.size / 1024).toFixed(1)} KB</span>
-                    <button type="button" className="icon-btn" onClick={() => setPendingFiles((p) => p.filter((_, idx) => idx !== i))}><X size={12} /></button>
+                    <button type="button" className="icon-btn" onClick={(e) => { e.preventDefault(); setPendingFiles((p) => p.filter((_, idx) => idx !== i)); }}><X size={12} /></button>
                   </div>
                 ))}
               </div>

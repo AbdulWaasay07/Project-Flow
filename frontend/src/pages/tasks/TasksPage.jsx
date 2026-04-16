@@ -135,6 +135,7 @@ export default function TasksPage() {
   const [dragOver, setDragOver] = useState(null); // column status being hovered
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+  const canDelete = true; // all authenticated users can delete tasks
 
   /* ── load ── */
   useEffect(() => { loadProjects(); }, []);
@@ -446,16 +447,14 @@ export default function TasksPage() {
                         <StatusBadge status={task.priority} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <span style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', userSelect: 'none' }}>⠿</span>
-                          {canManage && (
-                            <button
-                              className="icon-btn"
-                              style={{ color: 'var(--color-danger)', padding: '2px', opacity: 0.7 }}
-                              title="Delete task"
-                              onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
+                          <button
+                            className="icon-btn"
+                            style={{ color: 'var(--color-danger)', padding: '2px', opacity: 0.7 }}
+                            title="Delete task"
+                            onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
                       <p className="kanban-card-title" style={{ paddingLeft: '6px' }}>{task.title}</p>
@@ -514,11 +513,9 @@ export default function TasksPage() {
                       )}
                     </td>
                     <td>
-                      {canManage && (
-                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}>
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                      <button className="icon-btn" onClick={(e) => { e.stopPropagation(); requestDeleteTask(task); }}>
+                        <Trash2 size={14} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -716,6 +713,7 @@ export default function TasksPage() {
                 <div className="member-picker">
                   {projectMembers
                     .filter((m) => m.userId !== user.id) /* never self-assign */
+                    .filter((m) => user.role !== 'MANAGER' || m.projectRole !== 'ADMIN') /* managers cannot assign admins */
                     .map((m) => {
                     const selected = formData.assigneeIds.includes(m.userId);
                     return (
@@ -737,28 +735,38 @@ export default function TasksPage() {
           {/* ── File Upload (pre-attach) ── */}
           <div className="form-group">
             <label className="form-label"><Paperclip size={14} style={{ marginRight: '0.4rem' }} /> Attach Files (optional)</label>
-            <div
+            {/* Use label+htmlFor for reliable cross-browser file picker trigger */}
+            <input
+              id="create-task-file-input"
+              ref={createFileRef}
+              type="file"
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const selected = Array.from(e.target.files || []);
+                if (selected.length > 0) setPendingFiles((prev) => [...prev, ...selected]);
+                e.target.value = '';
+              }}
+            />
+            <label
+              htmlFor="create-task-file-input"
               style={{
+                display: 'block',
                 border: '2px dashed var(--color-neutral)', borderRadius: 'var(--radius-md)',
                 padding: '1rem', textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.15s',
               }}
-              onClick={() => createFileRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); }}
               onDrop={(e) => {
                 e.preventDefault();
                 const dropped = Array.from(e.dataTransfer.files || []);
-                setPendingFiles((prev) => [...prev, ...dropped]);
+                if (dropped.length > 0) setPendingFiles((prev) => [...prev, ...dropped]);
               }}
             >
-              <input ref={createFileRef} type="file" multiple hidden onChange={(e) => {
-                setPendingFiles((prev) => [...prev, ...Array.from(e.target.files || [])]);
-                e.target.value = '';
-              }} />
-              <Upload size={20} style={{ color: '#6366f1', margin: '0 auto 0.35rem' }} />
-              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                Click or drag & drop files here
+              <Upload size={20} style={{ color: '#6366f1', margin: '0 auto 0.35rem', display: 'block' }} />
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Click or drag &amp; drop files here
               </p>
-            </div>
+            </label>
 
             {/* Preview pending files */}
             {pendingFiles.length > 0 && (
@@ -780,7 +788,7 @@ export default function TasksPage() {
                       )}
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                       <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.7rem' }}>{(f.size / 1024).toFixed(1)} KB</span>
-                      <button type="button" className="icon-btn" onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}><X size={12} /></button>
+                      <button type="button" className="icon-btn" onClick={(e) => { e.preventDefault(); setPendingFiles((prev) => prev.filter((_, idx) => idx !== i)); }}><X size={12} /></button>
                     </div>
                   );
                 })}

@@ -54,7 +54,7 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Delete a task")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id, Authentication auth) {
         taskService.deleteTask(id, auth.getName());
