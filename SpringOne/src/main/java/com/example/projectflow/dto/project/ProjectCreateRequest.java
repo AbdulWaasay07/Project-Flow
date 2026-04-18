@@ -22,4 +22,6 @@ public class ProjectCreateRequest {
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;
+
+    private Long managerId;  // Optional: if set, this user becomes the project MANAGER
 }

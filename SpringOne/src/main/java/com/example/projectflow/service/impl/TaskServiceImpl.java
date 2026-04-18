@@ -26,6 +26,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskAssigneeRepository taskAssigneeRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
     private final TaskStatusHistoryService taskStatusHistoryService;
@@ -113,8 +114,20 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(Long id, String userEmail) {
         Task task = findTaskById(id);
         User user = findUserByEmail(userEmail);
+        String taskTitle = task.getTitle();
+        Project project = task.getProject();
 
-        activityLogService.log(user, task, AppConstants.ACTION_DELETE, "Deleted task: " + task.getTitle());
+        // Null-out task references in activity logs to avoid FK constraint violation
+        // (ActivityLog.task is not a cascade-delete child of Task)
+        List<ActivityLog> taskLogs = activityLogRepository.findByTaskIdOrderByCreatedAtDesc(id, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        for (ActivityLog log : taskLogs) {
+            log.setTask(null);
+        }
+        activityLogRepository.saveAll(taskLogs);
+
+        // Log the deletion AFTER nulling refs, using project directly
+        activityLogService.log(user, project, AppConstants.ACTION_DELETE, "Deleted task: " + taskTitle);
+
         taskRepository.delete(task);
     }
 

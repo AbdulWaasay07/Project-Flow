@@ -4,6 +4,7 @@ import com.example.projectflow.dto.ApiResponse;
 import com.example.projectflow.dto.project.*;
 import com.example.projectflow.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
 @Tag(name = "Project Management", description = "Endpoints for managing projects")
+@SecurityRequirement(name = "bearerAuth")
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -91,5 +93,13 @@ public class ProjectController {
             @PathVariable Long projectId, @PathVariable Long userId, Authentication auth) {
         projectService.removeMember(projectId, userId, auth.getName());
         return ResponseEntity.ok(ApiResponse.success("Member removed successfully", null));
+    }
+
+    @GetMapping("/{projectId}/members")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get all members of a project")
+    public ResponseEntity<ApiResponse<List<ProjectResponse.MemberDto>>> getMembers(@PathVariable Long projectId) {
+        ProjectResponse project = projectService.getProjectById(projectId);
+        return ResponseEntity.ok(ApiResponse.success("Members retrieved", project.getMembers()));
     }
 }

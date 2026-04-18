@@ -47,4 +47,13 @@ public class DashboardController {
         return ResponseEntity.ok(ApiResponse.success("Project progress retrieved", 
                 dashboardService.getRecentProjectsProgress(auth.getName(), limit)));
     }
+
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Get dashboard stats for a specific user (Admin/Manager only)")
+    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getUserStats(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(ApiResponse.success("User stats retrieved",
+                dashboardService.getUserStatsById(userId)));
+    }
 }

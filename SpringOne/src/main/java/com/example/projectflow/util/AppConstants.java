@@ -1,10 +1,10 @@
 package com.example.projectflow.util;
 
 public class AppConstants {
-    // Roles
-    public static final String ROLE_ADMIN = "ROLE_ADMIN";
-    public static final String ROLE_MANAGER = "ROLE_MANAGER";
-    public static final String ROLE_TEAM_MEMBER = "ROLE_TEAM_MEMBER";
+    // Roles (must match the 'name' column in the 'roles' table)
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_MANAGER = "MANAGER";
+    public static final String ROLE_TEAM_MEMBER = "TEAM_MEMBER";
 
     // User status
     public static final String STATUS_ACTIVE = "ACTIVE";

@@ -49,16 +49,33 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project saved = projectRepository.save(project);
 
-        // Add owner as manager member
-        ProjectMember ownerMember = ProjectMember.builder()
-                .project(saved)
-                .user(owner)
-                .role(AppConstants.PROJECT_ROLE_MANAGER)
-                .build();
-        projectMemberRepository.save(ownerMember);
+        // If admin specified a manager, add that user as MANAGER
+        if (request.getManagerId() != null) {
+            User manager = findUserById(request.getManagerId());
+            ProjectMember managerMember = ProjectMember.builder()
+                    .project(saved)
+                    .user(manager)
+                    .role(AppConstants.PROJECT_ROLE_MANAGER)
+                    .build();
+            projectMemberRepository.save(managerMember);
+            // Add owner as regular member if different from manager
+            if (!owner.getId().equals(manager.getId())) {
+                ProjectMember ownerMember = ProjectMember.builder()
+                        .project(saved).user(owner)
+                        .role(AppConstants.PROJECT_ROLE_MEMBER)
+                        .build();
+                projectMemberRepository.save(ownerMember);
+            }
+        } else {
+            // Default: owner becomes manager
+            ProjectMember ownerMember = ProjectMember.builder()
+                    .project(saved).user(owner)
+                    .role(AppConstants.PROJECT_ROLE_MANAGER)
+                    .build();
+            projectMemberRepository.save(ownerMember);
+        }
 
         activityLogService.log(owner, saved, AppConstants.ACTION_CREATE, "Created project: " + saved.getName());
-
         return mapToResponse(saved);
     }
 
@@ -75,8 +92,29 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.getEndDate() != null) project.setEndDate(request.getEndDate());
 
         Project updated = projectRepository.save(project);
-        activityLogService.log(user, updated, AppConstants.ACTION_UPDATE, "Updated project: " + updated.getName());
 
+        // Reassign manager if requested
+        if (request.getManagerId() != null) {
+            // Demote current manager(s) to MEMBER
+            projectMemberRepository.findByProjectIdAndRole(id, AppConstants.PROJECT_ROLE_MANAGER)
+                    .forEach(pm -> {
+                        pm.setRole(AppConstants.PROJECT_ROLE_MEMBER);
+                        projectMemberRepository.save(pm);
+                    });
+            // Promote new manager — add if not already a member
+            if (projectMemberRepository.existsByProjectIdAndUserId(id, request.getManagerId())) {
+                ProjectMember existing = projectMemberRepository.findByProjectIdAndUserId(id, request.getManagerId()).orElseThrow();
+                existing.setRole(AppConstants.PROJECT_ROLE_MANAGER);
+                projectMemberRepository.save(existing);
+            } else {
+                User newManager = findUserById(request.getManagerId());
+                projectMemberRepository.save(ProjectMember.builder()
+                        .project(updated).user(newManager)
+                        .role(AppConstants.PROJECT_ROLE_MANAGER).build());
+            }
+        }
+
+        activityLogService.log(user, updated, AppConstants.ACTION_UPDATE, "Updated project: " + updated.getName());
         return mapToResponse(updated);
     }
 
@@ -208,6 +246,16 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private ProjectResponse mapToResponse(Project project) {
+        List<ProjectMember> members = projectMemberRepository.findByProjectId(project.getId());
+        List<ProjectResponse.MemberDto> memberDtos = members.stream()
+                .map(pm -> ProjectResponse.MemberDto.builder()
+                        .userId(pm.getUser().getId())
+                        .fullName(pm.getUser().getFullName())
+                        .email(pm.getUser().getEmail())
+                        .projectRole(pm.getUser().getRole().getName())
+                        .build())
+                .collect(Collectors.toList());
+
         return ProjectResponse.builder()
                 .id(project.getId())
                 .name(project.getName())
@@ -217,19 +265,27 @@ public class ProjectServiceImpl implements ProjectService {
                 .status(project.getStatus())
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
-                .memberCount(projectMemberRepository.countByProjectId(project.getId()))
+                .memberCount(members.size())
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
+                .members(memberDtos)
                 .build();
     }
 
     private ProjectSummaryResponse mapToSummary(Project project) {
+        List<ProjectMember> managers = projectMemberRepository.findByProjectIdAndRole(
+                project.getId(), AppConstants.PROJECT_ROLE_MANAGER);
+        String managerName = managers.isEmpty() ? null : managers.get(0).getUser().getFullName();
+
         return ProjectSummaryResponse.builder()
                 .id(project.getId())
                 .name(project.getName())
+                .description(project.getDescription())
                 .status(project.getStatus())
                 .ownerName(project.getOwner().getFullName())
+                .managerName(managerName)
                 .memberCount(projectMemberRepository.countByProjectId(project.getId()))
+                .endDate(project.getEndDate())
                 .build();
     }
 }

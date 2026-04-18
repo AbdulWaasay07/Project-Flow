@@ -18,7 +18,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        List<String> roles = List.of("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_TEAM_MEMBER");
+        List<String> roles = List.of("ADMIN", "MANAGER", "TEAM_MEMBER");
 
         for (String roleName : roles) {
             if (roleRepository.findByName(roleName).isEmpty()) {
